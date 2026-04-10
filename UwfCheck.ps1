@@ -12,7 +12,23 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 
 function Show-UWFStatus {
     Write-Host "`n--- CURRENT UWF CONFIGURATION ---" -ForegroundColor Cyan
-    # Get general filter state
+
+    # Get filter state via WMI
+    $filter = Get-WmiObject -Namespace "root\standardcimv2\embedded" -Class UWF_Filter -ErrorAction SilentlyContinue
+    if ($filter) {
+        $currentState = if ($filter.CurrentEnabled) { "ENABLED" } else { "DISABLED" }
+        $nextState = if ($filter.NextEnabled) { "ENABLED" } else { "DISABLED" }
+        $currentColor = if ($filter.CurrentEnabled) { "Green" } else { "Yellow" }
+        $nextColor = if ($filter.NextEnabled) { "Green" } else { "Yellow" }
+
+        Write-Host "Filter Status:" -ForegroundColor Cyan
+        Write-Host " - Current session: $currentState" -ForegroundColor $currentColor
+        Write-Host " - Next session:    $nextState" -ForegroundColor $nextColor
+    } else {
+        Write-Host "Filter Status: Unable to read UWF_Filter state." -ForegroundColor Yellow
+    }
+
+    # Keep original raw config lines visible too
     uwfmgr get-config | Select-String "Current:", "Next Session:" | Out-String | Write-Host
     
     # Get volume states via WMI
